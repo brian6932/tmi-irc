@@ -102,7 +102,6 @@ export const
 	 */
 	CommandParser = function (buffer) {
 		Object.setPrototypeOf(this, null)
-		// console.log(buffer.toString())
 		switch (buffer[0]) {
 			case at: {
 				let
@@ -790,17 +789,12 @@ export const
 							tmi = collect.subarray(undefined, this.offset + tmi.copy(collect, this.offset))
 							this.offset = 0
 						}
-						// console.log(tmi.toString())
 
 						let parsedTMI = new CommandParser(tmi)
-						// if (parsedTMI.command !== `PRIVMSG`)
-						console.log(parsedTMI)
 						emitter.emit(parsedTMI.command, parsedTMI, this)
 
 						while (parsedTMI.subarray !== undefined) {
 							parsedTMI = new CommandParser(parsedTMI.subarray)
-							// if (parsedTMI.command !== `PRIVMSG`)
-							console.log(parsedTMI)
 							emitter.emit(parsedTMI.command, parsedTMI, this)
 						}
 					})
@@ -1142,7 +1136,7 @@ export const
 		const
 			ReadConnection = config.mergeConnections && authenticated ? ReadWriteConnection : ReadOnlyConnection,
 			roomListener = () => emitter
-				.on(`JOIN`, async (join, connection) => {
+				.on(`JOIN`, (join, connection) => {
 					if (join.login !== config.nick)
 						return
 
@@ -1356,7 +1350,6 @@ export const
 							return resolve()
 						}
 					emitter.on(event, listener)
-					// setTimeout(() => console.log(channels), 5_000)
 
 					setTimeout(() => {
 						emitter.removeListener(event, listener)
@@ -1414,25 +1407,3 @@ export const
 		}
 		return emitter
 	}
-// new Client()
-// const a = new Client
-
-// console.log(new CommandParser(Buffer.from(`:tmi.twitch.tv 421 justinfan6844009848674867 YOTSKI,#YOUGETNOPLAY,#YOURAGEX,#YOURRAGEGAMING,#YOUR_____M0M_____XD :Unknown command\r\n`)))
-// console.log(new CommandParser(Buffer.from(`@badge-info=;badges=no_audio/1;client-nonce=cc6488ad350d164a1cea0bb4df67fd07;color=#FF0000;display-name=Mustafa_4434;emote-only=1;emotes=emotesv2_ac4a06c0397342fa9eede99172be7286:0-5,7-12,14-19,21-26,28-33,35-40,42-47,49-54,56-61,63-68,70-75;first-msg=0;flags=;id=48957440-86aa-463d-9c3b-613ae8cc2210;mod=0;returning-chatter=0;room-id=207813352;subscriber=0;tmi-sent-ts=1707450307712;turbo=0;user-id=416946467;user-type=asd :mustafa_4434!mustafa_4434@mustafa_4434.tmi.twitch.tv PRIVMSG #hasanabi :cavsDj cavsDj cavsDj cavsDj cavsDj cavsDj cavsDj cavsDj cavsDj cavsDj cavsDj\r\n`)))
-// console.log(new CommandParser(Buffer.from(`@badge-info=;badges=game-developer/1;color=#0096CC;display-name=brian6932;emote-sets=0,19194,20863,33563,1512303,300374282,300917639,302696035,302696036,302696037,302696038,302696039,302696040,352978838,355882337,380001596,386314398,402867212,440297768,445163515,456972935,461608379,472394744,472873131,473316879,477339272,537206155,564265402,592920959,610186276,1738928307,20f9df49-2d0f-4b0f-929f-1a997bff010d,64f27774-e66e-49f9-945e-7bfa252eab48,a6527a1b-fde3-443d-b24d-17edc93f17b4,b888cd14-f8dd-4c57-aa8a-b3cd4a66ecbc,d5203f3c-84ab-4c75-a111-58af26c38f87;user-id=84180052;user-type= :tmi.twitch.tv GLOBALUSERSTATE\r\n`)))
-// console.log(new CommandParser(Buffer.from(`@badge-info=subscriber/63;badges=moderator/1,subscriber/3060,partner/1;color=#1976D2;display-name=as\\sas;emotes=;first-msg=0;flags=45-60:P.3;id=07a39485-7463-4efd-8418-f43f8df43a0a;mod=1;returning-chatter=0;room-id=71092938;subscriber=1;tmi-sent-ts=1707543010018;turbo=0;user-id=237719657;user-type=mod :fossabot!fossabot@fossabot.tmi.twitch.tv PRIVMSG #xqc :\u{1}ACTION Are you a vod enjoyer ? Watch them here ! https://xqc.wtf/\u{1}\r\n`)))
-// console.log(new CommandParser(Buffer.from(`@badges=;color=#1E90FF;display-name=Supibot;emotes=;message-id=422;thread-id=68136884_84180052;turbo=0;user-id=68136884;user-type= :supibot!supibot@supibot.tmi.twitch.tv WHISPER brian6932 :Pong! Uptime: 5d, 21h; Temperature: 40.9°C; Used memory: 799 MB; Redis: 28202 keys; Latency to Twitch: 190ms\r\n`)))
-// console.log(new CommandParser(Buffer.from(`:justinfan8924266931273821.tmi.twitch.tv 366 justinfan8924266931273821 #remcry :End of /NAMES list\r\n@emote-only=0;followers-only=0;r9k=0;room-id=742029560;slow=0;subs-only=0 :tmi.twitch.tv ROOMSTATE #remcry\r\n`)))
-// console.log(new CommandParser(Buffer.from(`@badge-info=subscriber/4;badges=subscriber/3,premium/1;color=#1E90FF;display-name=Lockeee_;emotes=537774:57-64;flags=;id=d31aa55d-6a16-4fc8-954e-3abc1e65bc34;login=lockeee_;mod=0;msg-id=resub;msg-param-cumulative-months=4;msg-param-months=0;msg-param-multimonth-duration=0;msg-param-multimonth-tenure=0;msg-param-should-share-streak=0;msg-param-sub-plan-name=Doods!;msg-param-sub-plan=Prime;msg-param-was-gifted=false;room-id=30104304;subscriber=1;system-msg=Lockeee_\\ssubscribed\\swith\\sPrime.\\sThey've\\ssubscribed\\sfor\\s4\\smonths!;tmi-sent-ts=1707559579995;user-id=118984338;user-type=;vip=0 :tmi.twitch.tv USERNOTICE #maximilian_dood :Nice to see that you still like videogames, Mr. Kroeger. doodGood\r\n`)))
-// console.log(new CommandParser(Buffer.from(`@badge-info=subscriber/12;badges=subscriber/12,rplace-2023/1;color=#8A2BE2;display-name=test\\\\\\ingg;emotes=;first-msg=0;flags=;id=b138817d-dd6f-4763-9c5e-097af6a9f082;mod=0;reply-parent-display-name=0verflux;reply-parent-msg-body=magic12th\\sim\\spretty\\smuch\\sfine\\sFeelsOkayMan;reply-parent-msg-id=9f94d1f7-e51d-41e6-83a0-c43d5cf5263b;reply-parent-user-id=128281846;reply-parent-user-login=0verflux;reply-thread-parent-display-name=0verflux;reply-thread-parent-msg-id=9f94d1f7-e51d-41e6-83a0-c43d5cf5263b;reply-thread-parent-user-id=128281846;reply-thread-parent-user-login=0verflux;returning-chatter=0;room-id=71092938;subscriber=1;tmi-sent-ts=1707521921674;turbo=0;user-id=128281846;user-type= :0verflux!0verflux@0verflux.tmi.twitch.tv PRIVMSG #xqc :@0verflux whats wrong ApuApustaja TeaTime\r\n`)))
-// console.log(new CommandParser(Buffer.from(`@badge-info=subscriber/12;badges=subscriber/12,rplace-2023/1;color=#8A2BE2;display-name=test\\\\\\ingg;emotes=;first-msg=0;flags=;id=b138817d-dd6f-4763-9c5e-097af6a9f082;mod=0;returning-chatter=0;room-id=71092938;subscriber=1;tmi-sent-ts=1707521921674;turbo=0;user-id=128281846;user-type= :0verflux!0verflux@0verflux.tmi.twitch.tv PRIVMSG #xqc :@0verflux whats wrong ApuApustaja TeaTime\r\n`)))
-// console.log(new CommandParser(Buffer.from(`:justinfan5773558750869711.tmi.twitch.tv 353 justinfan5773558750869711 = #brian6932 :egsbot purpletender vulpeshd mm2pl y_exp fijxu fookstee melonbot__ razalynn thetoomm jesfreck koelski pank0xd qu0te_ retonyan bontalor drapsnatt eruktorr jannituts runneypo scriptorex spanixbot spencersx 8supa juliilan pepegaboat apulxd auror6s muykel philifilly fossabot anoraqx evil_neuro fluxxuated supibot xstiffyyy zomballr azzzv botbear1110 denyiai rareayayacollector zonianmidian dank_tg ledroy obleto rashlay 2547techno\r\n:justinfan5773558750869711.tmi.twitch.tv 353 justinfan5773558750869711 = #brian6932 :melon095 ragglefraggle sergeirachmaninoffs 33kk eazylemnsqeezy okayzzi psyclonetm zhynks brian6932 feelsdonkman nimmy0 augustcelery mynameiskeith_ titlechange_bot xriggby dogesobaka fwog___ treuks\r\n:justinfan5773558750869711.tmi.twitch.tv 353 justinfan5773558750869711 = #brian6932 :justinfan5773558750869711\r\n:justinfan5773558750869711.tmi.twitch.tv 366 justinfan5773558750869711 #brian6932 :End of /NAMES list`)))
-// console.log(new CommandParser(Buffer.from(`@badge-info=subscriber/21;badges=broadcaster/1,subscriber/3000,artist-badge/1;color=#0096CC;display-name=brian6932;emotes=;first-msg=0;flags=;id=a1dbfbd4-2ddd-4653-958e-34d7683f5aeb;mod=0;reply-parent-display-name=brian6932;reply-parent-msg-body=ppL\\sppL;reply-parent-msg-id=e71c71c3-935a-4d3e-9147-b2481ea04e27;reply-parent-user-id=84180052;reply-parent-user-login=brian6932;reply-thread-parent-display-name=brian6932;reply-thread-parent-msg-id=e71c71c3-935a-4d3e-9147-b2481ea04e27;reply-thread-parent-user-id=84180052;reply-thread-parent-user-login=brian6932;returning-chatter=0;room-id=84180052;subscriber=1;tmi-sent-ts=1707662422089;turbo=0;user-id=84180052;user-type= :brian6932!brian6932@brian6932.tmi.twitch.tv PRIVMSG #brian6932 :@brian6932 ppL\r\n`)))
-// console.log(new CommandParser(Buffer.from(`@badge-info=subscriber/21;badges=broadcaster/1,subscriber/3000,artist-badge/1;color=#0096CC;display-name=brian6932;emotes=;first-msg=0;flags=;id=a1dbfbd4-2ddd-4653-958e-34d7683f5aeb;mod=0;reply-parent-display-name=brian6932;reply-parent-msg-body=ppL\\\\\\\\\\sppL\\s\\\\;reply-parent-msg-id=e71c71c3-935a-4d3e-9147-b2481ea04e27;reply-parent-user-id=84180052;reply-parent-user-login=brian6932;reply-thread-parent-display-name=brian6932;reply-thread-parent-msg-id=e71c71c3-935a-4d3e-9147-b2481ea04e27;reply-thread-parent-user-id=84180052;reply-thread-parent-user-login=brian6932;returning-chatter=0;room-id=84180052;subscriber=1;tmi-sent-ts=1707662422089;turbo=0;user-id=84180052;user-type= :brian6932!brian6932@brian6932.tmi.twitch.tv PRIVMSG #brian6932 :@brian6932 ppL\r\n`)))
-// console.log(new CommandParser(Buffer.from(`@emote-only=0;followers-only=1440;r9k=0;room-id=71092938;slow=0;subs-only=0 :tmi.twitch.tv ROOMSTATE #xqc\r\n`)))
-// console.log(new CommandParser(Buffer.from(`@badge-info=;badges=game-developer/1;color=#0096CC;custom-reward-id=184bdb12-8047-4e34-9407-ecfe80e58744;display-name=brian6932;emotes=;first-msg=0;flags=;id=53ea354f-dfd8-438b-9fc8-d6f6b539fa22;mod=0;returning-chatter=0;room-id=11148817;subscriber=0;tmi-sent-ts=1708311823663;turbo=0;user-id=84180052;user-type= :brian6932!brian6932@brian6932.tmi.twitch.tv PRIVMSG #pajlada :a\r\n`)))
-// console.log(new CommandParser(Buffer.from(`@badge-info=predictions/AT\\sLEAST\\sONE\\sEXTRACTS;badges=predictions/blue-2,gold-pixel-heart/1;color=#00FAFA;display-name=ben_vincent;emotes=;first-msg=0;flags=;id=c9c6c874-1db7-4a98-9dde-27edc1c9c567;mod=0;returning-chatter=0;room-id=12943173;subscriber=0;tmi-sent-ts=1708313316955;turbo=0;user-id=426757330;user-type= :ben_vincent!ben_vincent@ben_vincent.tmi.twitch.tv PRIVMSG #pokelawls :holy\r\n`)))
-// console.log(new CommandParser(Buffer.from(`@badge-info=;badges=moderator/1;color=;display-name=brian7052;emotes=;first-msg=0;flags=;id=69c3aedf-f2ec-480f-8bf4-4d0a6a6fb157;mod=1;returning-chatter=0;room-id=84180052;subscriber=0;tmi-sent-ts=1708322124140;turbo=0;user-id=898477882;user-type=mod :brian7052!brian7052@brian7052.tmi.twitch.tv PRIVMSG #brian6932 :a\r\n@badge-info=;badges=moderator/1;color=;display-name=brian7054;emotes=;first-msg=0;flags=;id=c0bf9874-5b09-4f07-bff5-169283437547;mod=1;returning-chatter=0;room-id=84180052;subscriber=0;tmi-sent-ts=1708322124137;turbo=0;user-id=898478370;user-type=mod :brian7054!brian7054@brian7054.tmi.twitch.tv PRIVMSG #brian6932 :a\r\n`)))
-// console.log(new CommandParser(Buffer.from(`:tmi.twitch.tv HOSTTARGET #abc :xyz 10\r\n`)))
-// console.log(new CommandParser(Buffer.from(`:brian6932!brian6932@brian6932.tmi.twitch.tv JOIN #remcry\r\n:brian6932.tmi.twitch.tv 353 brian6932 = #remcry :brian6932\r\n:brian6932.tmi.twitch.tv 366 brian6932 #remcry :End of /NAMES list\r\n@badge-info=;badges=moderator/1,game-developer/1;color=#0096CC;display-name=brian6932;emote-sets=0,19194,20863,33563,1512303,300374282,302696035,302696036,302696037,302696038,302696039,302696040,325436050,352978838,355882337,362543071,380001596,386314398,394979813,440297768,445163515,456972935,461608379,462741053,472394744,472873131,473316879,477339272,537206155,564265402,592920959,610186276,1738928307,20f9df49-2d0f-4b0f-929f-1a997bff010d,387b76d3-692f-4fdb-8263-8fbc0c96f73a,60b50a26-3fa6-4e04-9c95-636681d42d30,64f27774-e66e-49f9-945e-7bfa252eab48,a6527a1b-fde3-443d-b24d-17edc93f17b4,b888cd14-f8dd-4c57-aa8a-b3cd4a66ecbc,d5203f3c-84ab-4c75-a111-58af26c38f87;mod=1;subscriber=0;user-type=mod :tmi.twitch.tv USERSTATE #remcry\r\n@emote-only=0;followers-only=-1;r9k=0;room-id=742029560;slow=0;subs-only=0 :tmi.twitch.tv ROOMSTATE #remcry\r\n`)))
-// console.log(new CommandParser(Buffer.from(`@badge-info=predictions/w7m\\sesports,subscriber/2;badges=predictions/pink-2,subscriber/2,premium/1;color=#912112;display-name=Iniquitous_G;emotes=;first-msg=0;flags=;id=6f7ff46e-5803-4d70-a655-345cc993644b;mod=0;returning-chatter=0;room-id=65171890;subscriber=1;tmi-sent-ts=1708706282976;turbo=0;user-id=83165163;user-type= :iniquitous_g!iniquitous_g@iniquitous_g.tmi.twitch.tv PRIVMSG #rainbow6 :Why are Oryx and Flores on the screen\r\n`)))
