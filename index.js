@@ -7,11 +7,6 @@ import { notice, privmsgCommands } from './notices.js'
 import { PermissionError, TimeoutError } from './errors.js'
 import { RoomTracker } from './room.js'
 import { Config } from './config.js'
-import { inspect } from 'node:util'
-inspect.defaultOptions.depth = undefined
-inspect.defaultOptions.maxArrayLength = Infinity
-
-console.warn(process.pid)
 
 // This wrapper method makes it so that you can request what CommandParser parses (most) key values into.
 // $env:PARSE_INTO_BUFFERS=1 parses values into Buffers.
