@@ -769,7 +769,9 @@ export const
 				/** @type {TLSSocket} */
 				this.socket = new TLSSocket
 				this.ready = new Promise(resolve => this.socket.once(`data`, () => resolve()))
-				let pingterval
+				let
+					offset = 0,
+					pingterval
 
 				this.socket
 					.setNoDelay()
@@ -779,10 +781,10 @@ export const
 					.connect(6697, `irc.chat.twitch.tv`)
 					.on(`data`, tmi => {
 						if (tmi[tmi.length - 1] !== lf)
-							return this.offset += tmi.copy(collect, this.offset)
-						else if (this.offset !== 0) {
-							tmi = collect.subarray(undefined, this.offset + tmi.copy(collect, this.offset))
-							this.offset = 0
+							return offset += tmi.copy(collect, offset)
+						else if (offset !== 0) {
+							tmi = collect.subarray(undefined, offset + tmi.copy(collect, offset))
+							offset = 0
 						}
 
 						let parsedTMI = new CommandParser(tmi)
@@ -807,7 +809,6 @@ export const
 
 		Connection.prototype = {
 			__proto__: null,
-			offset: 0,
 			ping: function () {
 				return new Promise((resolve, reject) => {
 					const
