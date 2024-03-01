@@ -1,7 +1,7 @@
 /** @type {ErrorConstructor} */
 const TypedError = class extends Error {
-	constructor(arg) {
-		super(arg)
+	constructor(message) {
+		super(message)
 		this.name = this.constructor.name
 	}
 }
