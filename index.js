@@ -1254,7 +1254,10 @@ export const
 							return reject(TypeError())
 					}
 
-					const parting = type === `part`
+					const
+						parting = type === `part`,
+						// Channel/user names can only be ascii
+						encoding = `ascii`
 
 					if (parting) {
 						for (const channel of channels) {
@@ -1267,7 +1270,7 @@ export const
 
 							await connection.ready
 
-							connection.socket.write(`${type} #${channel}\n`)
+							connection.socket.write(`${type} #${channel}\n`, encoding)
 						}
 					}
 					else {
@@ -1289,9 +1292,7 @@ export const
 							// The max length of a username can be's 25 bytes + (a leading `join #`.length === 6 bytes) + (a trailing `\n` === 1 byte) = 32 bytes
 							// When joining multiple channels, we can comma seperate each, so 25 bytes + (a leading `,#`.length === 2 bytes) = 27 bytes
 							buffer = Buffer.allocUnsafe((channels.size > 0) * 32 + (channelsPerConnection > 1) * (channelsPerConnection - 1) * 27),
-							itr = channels.values(),
-							// Channel/user names can only be ascii
-							encoding = `ascii`
+							itr = channels.values()
 						let size = channels.size
 
 						joiner:
