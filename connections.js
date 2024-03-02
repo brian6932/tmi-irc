@@ -181,7 +181,7 @@ for (const command in privmsgCommands) {
 				if (typeof color === `number`)
 					color = `#` + (`0`.repeat(6 - (color = color.toString(16)).length) + color)
 
-				socket.privmsg(channel, `.${command} ${color}`)
+				this.privmsg(channel, `.${command} ${color}`)
 
 				return noticeCheck(channel, config, emitter)
 			}
@@ -272,7 +272,7 @@ for (const command in privmsgCommands) {
 					const
 						event = `NOTICE`,
 						/** @type {(notice: import('./index.d.ts').Commands['NOTICE'])} */
-						listener = notice => prop[notice['msg-id'].toString()]?.(notice, this.socket, event, listener, resolve, reject)
+						listener = notice => prop[notice['msg-id'].toString()]?.(notice, emitter, event, listener, resolve, reject)
 					emitter.on(event, listener)
 
 					setTimeout(() => {
@@ -298,7 +298,7 @@ for (const command in privmsgCommands) {
 					const
 						event = `NOTICE`,
 						/** @type {(notice: import('./index.d.ts').Commands['NOTICE'])} */
-						listener = notice => prop[notice['msg-id'].toString()]?.(notice, this.socket, event, listener, resolve, reject),
+						listener = notice => prop[notice['msg-id'].toString()]?.(notice, emitter, event, listener, resolve, reject),
 
 						event2 = `USERNOTICE`,
 						/** @type {(msg: import('./index.d.ts').Commands['USERNOTICE'])} */
