@@ -303,7 +303,7 @@ export const Client = (config = new Config) => {
 				}
 			for (const key in privmsgCommands)
 				emitter[key] = function () {
-					return emitter.connections.write[++privmsgConnectionIndex % emitter.connections.write.length | 0][key](...arguments, config, emitter)
+					return emitter.connections.write[++privmsgConnectionIndex % emitter.connections.write.length | 0][key](config, emitter, ...arguments)
 				}
 		}
 

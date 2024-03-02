@@ -149,7 +149,7 @@ for (const command in privmsgCommands) {
 	 */
 	const
 		prop = privmsgCommands[command],
-		noticeCheck = (channel, config, emitter) => {
+		noticeCheck = (config, emitter, channel) => {
 			return new Promise((resolve, reject) => {
 				const
 					event = `NOTICE`,
@@ -176,14 +176,14 @@ for (const command in privmsgCommands) {
 			 * @param {number|string} color
 			 * @param {string}        [channel]
 			 */
-			WriteOnlyConnection.prototype[command] = (color, channel, config, emitter) => {
+			WriteOnlyConnection.prototype[command] = (config, emitter, color, channel) => {
 				channel ??= config.nick
 				if (typeof color === `number`)
 					color = `#` + (`0`.repeat(6 - (color = color.toString(16)).length) + color)
 
 				this.privmsg(channel, `.${command} ${color}`)
 
-				return noticeCheck(channel, config, emitter)
+				return noticeCheck(config, emitter, channel)
 			}
 			continue
 		case 1:
@@ -192,10 +192,10 @@ for (const command in privmsgCommands) {
 			 * @param {string} channel
 			 * @param {string} arg
 			 */
-			WriteOnlyConnection.prototype[command] = function (channel, arg, config, emitter) {
+			WriteOnlyConnection.prototype[command] = function (config, emitter, channel, arg) {
 				this.privmsg(channel, `.${command} ${arg}`)
 
-				return noticeCheck(channel, config, emitter)
+				return noticeCheck(config, emitter, channel)
 			}
 			continue
 		case 2:
@@ -205,10 +205,10 @@ for (const command in privmsgCommands) {
 			 * @param {string|number} [duration]
 			 * @param {string}        [reason]
 			 */
-			WriteOnlyConnection.prototype[command] = function (channel, login, duration = ``, reason = ``, config, emitter) {
+			WriteOnlyConnection.prototype[command] = function (config, emitter, channel, login, duration = ``, reason = ``) {
 				this.privmsg(channel, `.${command} ${login}${duration && ` ` + duration}${reason && ` ` + reason}`)
 
-				return noticeCheck(channel, config, emitter)
+				return noticeCheck(config, emitter, channel)
 			}
 			continue
 		case 3:
@@ -217,10 +217,10 @@ for (const command in privmsgCommands) {
 			 * @param {string} login
 			 * @param {string} [reason]
 			 */
-			WriteOnlyConnection.prototype[command] = function (channel, login, reason = ``, config, emitter) {
+			WriteOnlyConnection.prototype[command] = function (config, emitter, channel, login, reason = ``) {
 				this.privmsg(channel, `.${command} ${login}${reason && ` ` + reason}`)
 
-				return noticeCheck(channel, config, emitter)
+				return noticeCheck(config, emitter, channel)
 			}
 			continue
 		case 4:
@@ -228,7 +228,7 @@ for (const command in privmsgCommands) {
 			 * @param {string} channel
 			 * @param {string} login
 			 */
-			WriteOnlyConnection.prototype[command] = function (channel, login, config, emitter) {
+			WriteOnlyConnection.prototype[command] = function (config, emitter, channel, login) {
 				const raid = `.${command} ${login}`
 
 				// To get any response back, we have to send twice
@@ -238,14 +238,14 @@ for (const command in privmsgCommands) {
 				this.privmsg(channel, raid)
 				this.socket.uncork()
 
-				return noticeCheck(channel, config, emitter)
+				return noticeCheck(config, emitter, channel)
 			}
 			continue
 		case 5:
 			/**
 			 * @param {string} channel
 			 */
-			WriteOnlyConnection.prototype[command] = function (channel, config, emitter) {
+			WriteOnlyConnection.prototype[command] = function (config, emitter, channel) {
 				const prefixedCommand = `.` + command
 
 				// To get any response back (when not joined), we have to send twice
@@ -254,7 +254,7 @@ for (const command in privmsgCommands) {
 				this.privmsg(channel, prefixedCommand)
 				this.socket.uncork()
 
-				return noticeCheck(channel, config, emitter)
+				return noticeCheck(config, emitter, channel)
 			}
 			continue
 		case 6:
@@ -265,7 +265,7 @@ for (const command in privmsgCommands) {
 			 * @param  {string} [channel]
 			 * @return {Promise<undefined|Error>}
 			 */
-			WriteOnlyConnection.prototype[command] = function (login, message, channel, config, emitter) {
+			WriteOnlyConnection.prototype[command] = function (config, emitter, login, message, channel) {
 				return new Promise((resolve, reject) => {
 					this.privmsg(channel ?? config.nick, `.${command} ${login} ${message}`)
 
@@ -291,7 +291,7 @@ for (const command in privmsgCommands) {
 			 * @param  {string} message
 			 * @return {Promise<undefined|Error|PermissionError>}
 			 */
-			WriteOnlyConnection.prototype[command] = function (channel, message, config, emitter) {
+			WriteOnlyConnection.prototype[command] = function (config, emitter, channel, message) {
 				return new Promise((resolve, reject) => {
 					this.privmsg(channel, `.${command} ${message}`)
 
@@ -327,7 +327,7 @@ for (const command in privmsgCommands) {
 			 * @param  {string} channel
 			 * @return {Promise<undefined|Error|PermissionError>}
 			 */
-			WriteOnlyConnection.prototype[command] = function (channel, config, emitter) {
+			WriteOnlyConnection.prototype[command] = function (config, emitter, channel) {
 				return new Promise((resolve, reject) => {
 					this.privmsg(channel, `.` + command)
 
@@ -356,10 +356,10 @@ for (const command in privmsgCommands) {
 	/**
 	 * @param {string} channel
 	 */
-	WriteOnlyConnection.prototype[command] = function (channel, config, emitter) {
+	WriteOnlyConnection.prototype[command] = function (config, emitter, channel) {
 		this.privmsg(channel, `.` + command)
 
-		return noticeCheck(channel, config, emitter)
+		return noticeCheck(config, emitter, channel)
 	}
 }
 
