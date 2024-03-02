@@ -6,23 +6,6 @@ import { Config } from './config.js'
 import { ReadOnlyConnection, WriteOnlyConnection, ReadWriteConnection } from './connections.js'
 import { hashtag, lf, comma } from './characters.js'
 
-// This wrapper method makes it so that you can request what CommandParser parses (most) key values into.
-// $env:PARSE_INTO_BUFFERS=1 parses values into Buffers.
-// Any other value (or lack thereof) for this environment variable will make CommandParser parse the Buffers into Strings (default behavior).
-// The benefit being that Buffer subarrays are references, so there's no copy made until access.
-// You can stringify Buffers with their toString() method and their (String) Symbol.toPrimitive.
-// A few things to know:
-// - (U)Int keys are still going to be parsed into (U)Ints.
-// - JS Object keys will (and can only) still be Strings.
-// - command, login, and channel key values are exempt, as they're used internally, and are always Strings.
-// - subarray's key value's exempt, as it's used internally, and is always a Buffer.
-
-Buffer.prototype.parse = +process.env.PARSE_INTO_BUFFERS === 1
-	? Buffer.prototype.subarray
-	: function (start, end) {
-		return this.toString(undefined, start, end)
-	}
-
 /**
  * @constructor
  * @type {import('./index.d.ts').Client}
