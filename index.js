@@ -292,7 +292,7 @@ export const Client = (config = new Config) => {
 		}
 
 
-		if (authenticated && emitter.connections.write.length >= 1) {
+		if (authenticated && (config.writeMultiplier > 0 || config.mergeConnections)) {
 			let privmsgConnectionIndex = -1
 			// These are currently intentionally not promisified for performance
 			// I'm not opposed to adding promisified versions with USERSTATE events
