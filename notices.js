@@ -68,6 +68,7 @@ export const
 				= pass
 
 			this.no_permission = permissions
+
 			this.jump = 5
 		}
 
@@ -77,6 +78,7 @@ export const
 				= pass
 
 			this.no_permission = permissions
+
 			this.jump = 5
 		}
 		this.subscribersoff = new function () {
@@ -85,6 +87,7 @@ export const
 				= pass
 
 			this.no_permission = permissions
+
 			this.jump = 5
 		}
 
@@ -94,6 +97,7 @@ export const
 				= pass
 
 			this.no_permission = permissions
+
 			this.jump = 5
 		}
 		this.uniquechatoff = new function () {
@@ -102,6 +106,7 @@ export const
 				= pass
 
 			this.no_permission = permissions
+
 			this.jump = 5
 		}
 
@@ -111,6 +116,7 @@ export const
 				= pass
 
 			this.no_permission = permissions
+
 			this.jump = 5
 		}
 		this.emoteonlyoff = new function () {
@@ -119,6 +125,7 @@ export const
 				= pass
 
 			this.no_permission = permissions
+
 			this.jump = 5
 		}
 
