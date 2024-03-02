@@ -4,7 +4,11 @@
   "main": "index.js",
   "keywords": [],
   "author": "",
-  "license": "ISC",
+  "license": "LGPL-3.0-only",
+  "exports": [
+    "./index.js",
+    "./parser.js"
+  ],
   "type": "module",
   "devDependencies": {
     "@types/node": "^20.11.19"

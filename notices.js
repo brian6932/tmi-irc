@@ -1,28 +1,28 @@
 import { PermissionError, UsageError, UnrecognizedError } from './errors.js'
 
 const
-	pass = (notice, socket, event, listener, resolve, reject, delay = 0) => {
-		socket.removeListener(event, listener)
+	pass = (notice, emitter, event, listener, resolve, reject, delay = 0) => {
+		emitter.removeListener(event, listener)
 		return setTimeout(resolve, delay)
 	},
-	fail = (notice, socket, event, listener, resolve, reject) => {
-		socket.removeListener(event, listener)
+	fail = (notice, emitter, event, listener, resolve, reject) => {
+		emitter.removeListener(event, listener)
 		return reject(Error(notice.message.toString()))
 	},
-	permissions = (notice, socket, event, listener, resolve, reject) => {
-		socket.removeListener(event, listener)
+	permissions = (notice, emitter, event, listener, resolve, reject) => {
+		emitter.removeListener(event, listener)
 		return reject(new PermissionError(notice.message.toString()))
 	},
-	usage = (notice, socket, event, listener, resolve, reject) => {
-		socket.removeListener(event, listener)
+	usage = (notice, emitter, event, listener, resolve, reject) => {
+		emitter.removeListener(event, listener)
 		return reject(new UsageError(notice.message.toString()))
 	},
-	unrecognized = (notice, socket, event, listener, resolve, reject) => {
-		socket.removeListener(event, listener)
+	unrecognized = (notice, emitter, event, listener, resolve, reject) => {
+		emitter.removeListener(event, listener)
 		return reject(new UnrecognizedError(notice.message.toString()))
 	},
-	modsvips = (notice, socket, event, listener, resolve) => {
-		socket.removeListener(event, listener)
+	modsvips = (notice, emitter, event, listener, resolve) => {
+		emitter.removeListener(event, listener)
 		return resolve(notice.users)
 	}
 
@@ -59,6 +59,8 @@ export const
 				= pass
 
 			this.no_permission = permissions
+
+			this.jump = 5
 		}
 		this.slowoff = new function () {
 			this.slow_off
@@ -66,6 +68,7 @@ export const
 				= pass
 
 			this.no_permission = permissions
+			this.jump = 5
 		}
 
 		this.subscribers = new function () {
@@ -74,6 +77,7 @@ export const
 				= pass
 
 			this.no_permission = permissions
+			this.jump = 5
 		}
 		this.subscribersoff = new function () {
 			this.subs_off
@@ -81,6 +85,7 @@ export const
 				= pass
 
 			this.no_permission = permissions
+			this.jump = 5
 		}
 
 		this.uniquechat = new function () {
@@ -89,6 +94,7 @@ export const
 				= pass
 
 			this.no_permission = permissions
+			this.jump = 5
 		}
 		this.uniquechatoff = new function () {
 			this.r9k_off
@@ -96,6 +102,7 @@ export const
 				= pass
 
 			this.no_permission = permissions
+			this.jump = 5
 		}
 
 		this.emoteonly = new function () {
@@ -104,6 +111,7 @@ export const
 				= pass
 
 			this.no_permission = permissions
+			this.jump = 5
 		}
 		this.emoteonlyoff = new function () {
 			this.emote_only_off
@@ -111,6 +119,7 @@ export const
 				= pass
 
 			this.no_permission = permissions
+			this.jump = 5
 		}
 
 		this.delete = {
