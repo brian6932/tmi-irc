@@ -323,7 +323,7 @@ for (const command in privmsgCommands) {
 			continue
 		case 8:
 			/**
-			 * Sends an CLEARCHAT.
+			 * Sends a CLEARCHAT.
 			 * @param  {string} channel
 			 * @return {Promise<undefined|Error|PermissionError>}
 			 */

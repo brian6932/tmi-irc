@@ -11,7 +11,8 @@ Config.prototype = {
 	promiseTimeout: 2_000,
 	/**
 	 * By toggling this value to `false`, `readDivsior` won't be used for writes,
-	 * and users can set the `writeMultiplier`.
+	 * and users can set the `writeMultiplier`,
+	 * when this is `true`, at least one channel must be provided for things to work as normal.
 	 * @type {Boolean}
 	 */
 	mergeConnections: true,
