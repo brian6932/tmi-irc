@@ -4,40 +4,59 @@ import { TimeoutError } from './errors.js'
 import { lf } from './characters.js'
 import { CommandParser } from './parser.js'
 
-const Connection = function (initBuffer, config, emitter) {
-	const collect = Buffer.allocUnsafe(30_000)
-	/** @type {TLSSocket} */
-	this.socket = new TLSSocket
-	this.ready = new Promise(resolve => this.socket.once(`data`, () => resolve()))
-	this.ping = this.ping(config, emitter)
-	let
-		offset = 0,
-		pingterval
+const
+	Connection = function (initBuffer, config, emitter) {
+		const collect = Buffer.allocUnsafe(30_000)
+		/** @type {TLSSocket} */
+		this.socket = new TLSSocket
+		this.ready = new Promise(resolve => this.socket.once(`data`, () => resolve()))
+		this.ping = this.ping(config, emitter)
+		let
+			offset = 0,
+			pingterval
 
-	this.socket
-		.setNoDelay()
-		.on(`PING`, () => this.socket.write(`pong\n`, `ascii`))
-		.once(`connect`, () => pingterval = setInterval(() => this.ping(), 300_000))
-		.once(`close`, () => clearInterval(pingterval))
-		.connect(6697, `irc.chat.twitch.tv`)
-		.on(`data`, tmi => {
-			if (tmi[tmi.length - 1] !== lf)
-				return offset += tmi.copy(collect, offset)
-			else if (offset !== 0) {
-				tmi = collect.subarray(undefined, offset + tmi.copy(collect, offset))
-				offset = 0
-			}
+		this.socket
+			.setNoDelay()
+			.on(`PING`, () => this.socket.write(`pong\n`, `ascii`))
+			.once(`connect`, () => pingterval = setInterval(() => this.ping(), 300_000))
+			.once(`close`, () => clearInterval(pingterval))
+			.connect(6697, `irc.chat.twitch.tv`)
+			.on(`data`, tmi => {
+				if (tmi[tmi.length - 1] !== lf)
+					return offset += tmi.copy(collect, offset)
+				else if (offset !== 0) {
+					tmi = collect.subarray(undefined, offset + tmi.copy(collect, offset))
+					offset = 0
+				}
 
-			let parsedTMI = new CommandParser(tmi)
-			emitter.emit(parsedTMI.command, parsedTMI, this)
-
-			while (parsedTMI.subarray !== undefined) {
-				parsedTMI = new CommandParser(parsedTMI.subarray)
+				let parsedTMI = new CommandParser(tmi)
 				emitter.emit(parsedTMI.command, parsedTMI, this)
-			}
+
+				while (parsedTMI.subarray !== undefined) {
+					parsedTMI = new CommandParser(parsedTMI.subarray)
+					emitter.emit(parsedTMI.command, parsedTMI, this)
+				}
+			})
+			.write(initBuffer)
+	},
+	noticeCheck = (command, prop, config, emitter, channel) => {
+		return new Promise((resolve, reject) => {
+			const
+				event = `NOTICE`,
+				/** @type {(notice: import('./index.d.ts').Commands['NOTICE'])} */
+				listener = notice => {
+					if (notice.channel === channel)
+						return prop[notice['msg-id'].toString()]?.(notice, emitter, event, listener, resolve, reject, prop.delay)
+				}
+			emitter.on(event, listener)
+
+			setTimeout(() => {
+				emitter.removeListener(event, listener)
+
+				return reject(new TimeoutError(command))
+			}, config.promiseTimeout + prop.delay)
 		})
-		.write(initBuffer)
-}
+	}
 export const
 	ReadOnlyConnection = function (initBuffer, config, emitter) {
 		Connection.call(this, initBuffer, config, emitter)
@@ -147,26 +166,7 @@ for (const command in privmsgCommands) {
 	 * @param  {string} channel
 	 * @return {Promise<PermissionError|Error|TimeoutError|undefined|(string|Buffer)[]>}
 	 */
-	const
-		prop = privmsgCommands[command],
-		noticeCheck = (config, emitter, channel) => {
-			return new Promise((resolve, reject) => {
-				const
-					event = `NOTICE`,
-					/** @type {(notice: import('./index.d.ts').Commands['NOTICE'])} */
-					listener = notice => {
-						if (notice.channel === channel)
-							return prop[notice['msg-id'].toString()]?.(notice, emitter, event, listener, resolve, reject, prop.delay)
-					}
-				emitter.on(event, listener)
-
-				setTimeout(() => {
-					emitter.removeListener(event, listener)
-
-					return reject(new TimeoutError(command))
-				}, config.promiseTimeout + prop.delay)
-			})
-		}
+	const prop = privmsgCommands[command]
 
 	// jump table switch
 	// https://github.com/v8/v8/blob/0c9f9732d333d3f73d4eb01c80fc6a2904ed3cce/src/interpreter/bytecode-generator.cc#L2148-L2212
@@ -183,7 +183,7 @@ for (const command in privmsgCommands) {
 
 				this.privmsg(channel, `.${command} ${color}`)
 
-				return noticeCheck(config, emitter, channel)
+				return noticeCheck(command, prop, config, emitter, channel)
 			}
 			continue
 		case 1:
@@ -195,7 +195,7 @@ for (const command in privmsgCommands) {
 			WriteOnlyConnection.prototype[command] = function (config, emitter, channel, arg) {
 				this.privmsg(channel, `.${command} ${arg}`)
 
-				return noticeCheck(config, emitter, channel)
+				return noticeCheck(command, prop, config, emitter, channel)
 			}
 			continue
 		case 2:
@@ -208,7 +208,7 @@ for (const command in privmsgCommands) {
 			WriteOnlyConnection.prototype[command] = function (config, emitter, channel, login, duration = ``, reason = ``) {
 				this.privmsg(channel, `.${command} ${login}${duration && ` ` + duration}${reason && ` ` + reason}`)
 
-				return noticeCheck(config, emitter, channel)
+				return noticeCheck(command, prop, config, emitter, channel)
 			}
 			continue
 		case 3:
@@ -220,7 +220,7 @@ for (const command in privmsgCommands) {
 			WriteOnlyConnection.prototype[command] = function (config, emitter, channel, login, reason = ``) {
 				this.privmsg(channel, `.${command} ${login}${reason && ` ` + reason}`)
 
-				return noticeCheck(config, emitter, channel)
+				return noticeCheck(command, prop, config, emitter, channel)
 			}
 			continue
 		case 4:
@@ -238,7 +238,7 @@ for (const command in privmsgCommands) {
 				this.privmsg(channel, raid)
 				this.socket.uncork()
 
-				return noticeCheck(config, emitter, channel)
+				return noticeCheck(command, prop, config, emitter, channel)
 			}
 			continue
 		case 5:
@@ -254,7 +254,7 @@ for (const command in privmsgCommands) {
 				this.privmsg(channel, prefixedCommand)
 				this.socket.uncork()
 
-				return noticeCheck(config, emitter, channel)
+				return noticeCheck(command, prop, config, emitter, channel)
 			}
 			continue
 		case 6:
@@ -359,7 +359,7 @@ for (const command in privmsgCommands) {
 	WriteOnlyConnection.prototype[command] = function (config, emitter, channel) {
 		this.privmsg(channel, `.` + command)
 
-		return noticeCheck(config, emitter, channel)
+		return noticeCheck(command, prop, config, emitter, channel)
 	}
 }
 
