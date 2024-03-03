@@ -32,7 +32,7 @@ import {
 // A few things to know:
 // - (U)Int keys are still going to be parsed into (U)Ints.
 // - JS Object keys will (and can only) still be Strings.
-// - command, login, and channel key values are exempt, as they're used internally, and are always Strings.
+// - NOTICE msg-id, * command, * login, and * channel key values are exempt, as they're used internally, and are always Strings.
 // - subarray's key value's exempt, as it's used internally, and is always a Buffer.
 
 Buffer.prototype.parse = +process.env.PARSE_INTO_BUFFERS === 1
@@ -448,7 +448,7 @@ export const CommandParser = function (buffer) {
 							case 0: {
 								// vips has a period
 								let vips = 1
-								switch (notice[this[`msg-id`].toString()]) {
+								switch (notice[this[`msg-id`] = this[`msg-id`].toString()]) {
 									case 0:
 										// `moderators`.length - `VIPs`.length === 6
 										i += 6

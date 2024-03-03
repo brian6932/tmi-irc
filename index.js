@@ -40,6 +40,7 @@ export const Client = (config = new Config) => {
 				throw Error(message)
 		})
 	}
+
 	initBufferOffset += initBuffer.write(nick, initBufferOffset)
 
 	initBuffer = initBuffer.subarray(undefined, initBufferOffset)
@@ -48,24 +49,33 @@ export const Client = (config = new Config) => {
 		first = true,
 		reconnecting = false
 
-	const
-		ReadConnection = config.mergeConnections && authenticated ? ReadWriteConnection : ReadOnlyConnection,
-		roomListener = () => emitter
-			.on(`JOIN`, (join, connection) => {
-				if (join.login !== config.nick)
-					return
+	emitter.unjoinableChannels = new Set
+	emitter.failSize = undefined
 
-				++connection.channelLength
-				emitter.rooms.set(join.channel, connection)
-			})
-			.on(`PART`, (part, connection) => {
-				if (part.login !== config.nick)
-					return
+	emitter
+		.on(`NOTICE`, notice => {
+			switch (notice[`msg-id`]) {
+				case `msg_banned`:
+				case `msg_channel_suspended`:
+					emitter.unjoinableChannels.add(notice.channel)
+			}
+		})
+		.on(`JOIN`, (join, connection) => {
+			if (join.login !== config.nick)
+				return
 
-				--connection.channelLength
-				emitter.rooms.delete(part.channel)
-			})
+			++connection.channelLength
+			emitter.rooms.set(join.channel, connection)
+		})
+		.on(`PART`, (part, connection) => {
+			if (part.login !== config.nick)
+				return
 
+			--connection.channelLength
+			emitter.rooms.delete(part.channel)
+		})
+
+	const ReadConnection = config.mergeConnections && authenticated ? ReadWriteConnection : ReadOnlyConnection
 	emitter.connect = async () => {
 		if (!reconnecting) {
 			if (first && authenticated)
@@ -77,7 +87,6 @@ export const Client = (config = new Config) => {
 		emitter.connections = config.mergeConnections
 			? new function () {
 				Object.setPrototypeOf(this, null)
-				roomListener()
 
 				config.readDivisor = (config.readDivisor <= 0) * 1 || config.readDivisor
 
@@ -100,8 +109,7 @@ export const Client = (config = new Config) => {
 				this.write = Array(Math.ceil(size || 1 * config.writeMultiplier))
 
 				config.readDivisor = (config.readDivisor <= 0) * 1 || config.readDivisor
-				if ((this.read = Array(Math.ceil(size / config.readDivisor))).length !== 0)
-					roomListener()
+				this.read = Array(Math.ceil(size / config.readDivisor))
 
 				ready = Array(this.write.length + this.read.length)
 				const itr = ready.keys()
@@ -146,6 +154,7 @@ export const Client = (config = new Config) => {
 				emitter.connections.length = size
 			}
 		else {
+			let attempts = 5
 			let roomMuatatorIndex = -1
 			/**
 			 * If a Set is provided, it'll be mutated, Strings and Arrays won't.
@@ -168,6 +177,9 @@ export const Client = (config = new Config) => {
 					default:
 						return reject(TypeError())
 				}
+
+				for (const channel of emitter.unjoinableChannels)
+					channels.delete(channel)
 
 				const
 					parting = type === `part`,
@@ -270,13 +282,17 @@ export const Client = (config = new Config) => {
 				setTimeout(() => {
 					emitter.removeListener(event, listener)
 
-					let stringChannels = ``
-					for (const channel of channels)
-						stringChannels += ` ` + channel
+					// Renamed or never created channels won't return a notice,
+					// so multiple attempts will be required in these specific cases
+					if (emitter.failSize === channels.size && --attempts !== 0) {
+						attempts = 5
+						emitter.failSize = undefined
+						return reject(channels)
+					}
 
-					return reject(new TimeoutError(`Timeout exceeded ${type}ing:${stringChannels}`))
-				}, 180_000)
-				// config.promiseTimeout * channels.size
+					emitter.failSize = channels.size
+					parting ? emitter.part(channels) : emitter.join(channels)
+				}, 10_000)
 			})
 
 			/**

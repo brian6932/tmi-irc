@@ -17,7 +17,7 @@ type PRIVMSG_WHISPER = {
 }
 
 type PRIVMSG_USERNOTICE = {
-	'msg-id': string
+	'msg-id': string | Buffer
 	badges: Record<string, number | Record<string, number>>
 	'badge-info': Record<string, number | Record<string, string | Buffer>>
 	color: number | null
@@ -82,7 +82,7 @@ type KnownCommands = {
 		login: string
 	}
 	NOTICE: {
-		'msg-id': string | Buffer
+		'msg-id'?: string // Not present on * NOTICEs (Login authentication failed)
 		message?: string | Buffer
 		users?: string[] | Buffer[]
 	}

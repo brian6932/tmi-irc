@@ -338,5 +338,9 @@ export const
 			this[command].unrecognized_cmd = unrecognized
 			// For some reason color requires a 1 second delay
 			this[command].delay = (command === `color`) * 1_000
+			if (command !== `w`)
+				this[command].msg_channel_suspended
+					= this[command].msg_banned
+					= fail
 		}
 	}

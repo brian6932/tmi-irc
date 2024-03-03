@@ -46,7 +46,7 @@ const
 				/** @type {(notice: import('./index.d.ts').Commands['NOTICE'])} */
 				listener = notice => {
 					if (notice.channel === channel)
-						return prop[notice['msg-id'].toString()]?.(notice, emitter, event, listener, resolve, reject, prop.delay)
+						return prop[notice['msg-id']]?.(notice, emitter, event, listener, resolve, reject, prop.delay)
 				}
 			emitter.on(event, listener)
 
@@ -272,7 +272,7 @@ for (const command in privmsgCommands) {
 					const
 						event = `NOTICE`,
 						/** @type {(notice: import('./index.d.ts').Commands['NOTICE'])} */
-						listener = notice => prop[notice['msg-id'].toString()]?.(notice, emitter, event, listener, resolve, reject)
+						listener = notice => prop[notice['msg-id']]?.(notice, emitter, event, listener, resolve, reject)
 					emitter.on(event, listener)
 
 					setTimeout(() => {
@@ -298,7 +298,7 @@ for (const command in privmsgCommands) {
 					const
 						event = `NOTICE`,
 						/** @type {(notice: import('./index.d.ts').Commands['NOTICE'])} */
-						listener = notice => prop[notice['msg-id'].toString()]?.(notice, emitter, event, listener, resolve, reject),
+						listener = notice => prop[notice['msg-id']]?.(notice, emitter, event, listener, resolve, reject),
 
 						event2 = `USERNOTICE`,
 						/** @type {(msg: import('./index.d.ts').Commands['USERNOTICE'])} */
