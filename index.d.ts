@@ -43,7 +43,9 @@ type KnownCommands = {
 	'002': KnownCommands['001']
 	'003': KnownCommands['001']
 	'004': KnownCommands['001']
-	'353': KnownCommands['366']
+	'353': KnownCommands['366'] & {
+		members: (Buffer | String)[]
+	}
 	'366': KnownCommands['001'] & {
 		channel: string
 	}

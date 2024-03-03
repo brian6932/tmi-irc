@@ -282,7 +282,7 @@ export const Client = (config = new Config) => {
 				setTimeout(() => {
 					emitter.removeListener(event, listener)
 
-					// Renamed or never created channels won't return a notice,
+					// Renamed or never created channels won't return a NOTICE,
 					// so multiple attempts will be required in these specific cases
 					if (emitter.failSize === channels.size && --attempts !== 0) {
 						attempts = 5
