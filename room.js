@@ -9,12 +9,10 @@ export const RoomTracker = class extends Map {
 	 */
 	set(key, value) {
 		const connection = super.get(key)
-		if (connection !== undefined) {
-			this.readSize -= connection.readPermission
+		if (connection !== undefined)
 			this.writeSize -= connection.writePermission
-		}
 
-		this.readSize += value.readPermission
+		this.dedicatedSize += value.dedicated
 		this.writeSize += value.writePermission
 
 		return super.set(key, value)
@@ -28,12 +26,12 @@ export const RoomTracker = class extends Map {
 		if (connection === undefined)
 			return false
 
-		this.readSize -= connection.readPermission
+		this.dedicatedSize -= connection.dedicated
 		this.writeSize -= connection.writePermission
 
 		return super.delete(key)
 	}
 }
-RoomTracker.prototype.readSize
-	= RoomTracker.prototype.writeSize
+RoomTracker.prototype.writeSize
+	= RoomTracker.prototype.dedicatedSize
 	= 0

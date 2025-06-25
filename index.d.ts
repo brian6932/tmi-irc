@@ -102,6 +102,7 @@ type KnownCommands = {
 		'reply-parent-user-id'?: number
 		'reply-parent-user-login'?: string | Buffer
 		'sent-ts'?: number
+		vip: 1 | undefined
 		action: boolean
 	}
 	RECONNECT: {}

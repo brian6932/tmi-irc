@@ -5,6 +5,7 @@ Config.prototype = {
 
 	membershipCapability: false,
 	commandsCapability: true,
+	rateLimit: true,
 	socket: `tcp`,
 	pass: ``,
 	channels: new Set,

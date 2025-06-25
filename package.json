@@ -1,19 +1,29 @@
 {
-  "name": "tmi-irc",
-  "description": "A performance focused TMI (Twitch Messaging Interface) library (WIP)",
-  "main": "index.js",
-  "keywords": [],
-  "author": "",
-  "license": "LGPL-3.0-only",
-  "exports": [
-    "./index.js",
-    "./parser.js"
-  ],
-  "type": "module",
-  "devDependencies": {
-    "@types/node": "^20.11.19"
-  },
-  "dependencies": {
-    "tseep": "^1.2.1"
-  }
+	"name": "tmi-irc",
+	"description": "A performance focused TMI (Twitch Messaging Interface) library (WIP)",
+	"keywords": [
+		"twitch.tv",
+		"tmi",
+		"twitch",
+		"messaging",
+		"interface",
+		"irc",
+		"internet",
+		"relay",
+		"chat"
+	],
+	"author": "brian6932",
+	"license": "MPL-2.0",
+	"exports": {
+		".": "./index.js",
+		"./parser": "./parser.js"
+	},
+	"types": "./index.dts",
+	"type": "module",
+	"devDependencies": {
+		"@types/node": "^20.11.19"
+	},
+	"dependencies": {
+		"tseep": "^1.3.1"
+	}
 }

@@ -33,6 +33,7 @@ export const tags = new function () {
 		= this[`reply-thread-parent-user-id`]
 		= this[`returning-chatter`]
 		= this[`room-id`]
+		= this[`source-room-id`]
 		= this[`subs-only`]
 		= this[`target-user-id`]
 		= this[`user-id`]
@@ -49,9 +50,13 @@ export const tags = new function () {
 
 	this[`emote-sets`] = 4
 
-	this.badges = 5
+	this.badges
+		= this[`source-badges`]
+		= 5
 
-	this[`badge-info`] = 6
+	this[`badge-info`]
+		= this[`source-badge-info`]
+		= 6
 
 	this[`client-nonce`]
 		= this[`msg-param-sub-plan-name`]

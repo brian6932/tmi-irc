@@ -12,6 +12,7 @@ export const
 	cr = `\r`.charCodeAt(),
 	lf = `\n`.charCodeAt(),
 	dash = `-`.charCodeAt(),
+	quote = `"`.charCodeAt(),
 	backslash = `\\`.charCodeAt(),
 	s = `s`.charCodeAt(),
 	r = `r`.charCodeAt(),

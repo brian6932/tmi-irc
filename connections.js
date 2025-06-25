@@ -17,9 +17,13 @@ const
 
 		this.socket
 			.setNoDelay()
-			.on(`PING`, () => this.socket.write(`pong\n`, `ascii`))
-			.once(`connect`, () => pingterval = setInterval(() => this.ping(), 300_000))
-			.once(`close`, () => clearInterval(pingterval))
+			.on(`PING`, () => { this.socket.write(`pong\n`, `ascii`) })
+			.once(`connect`, () => { pingterval = setInterval(() => this.ping(), 100_000) })
+			.once(`close`, () => {
+				clearInterval(pingterval)
+				if (++emitter.closed === !emitter.config.mergeConnections * emitter.connections.write.length + emitter.connections.read.length)
+					emitter.emit(`close`)
+			})
 			.connect(6697, `irc.chat.twitch.tv`)
 			.on(`data`, tmi => {
 				if (tmi[tmi.length - 1] !== lf)
@@ -30,7 +34,7 @@ const
 				}
 
 				let parsedTMI = new CommandParser(tmi)
-				emitter.emit(parsedTMI.command, parsedTMI, this)
+				try { emitter.emit(parsedTMI.command, parsedTMI, this) } catch {}
 
 				while (parsedTMI.subarray !== undefined) {
 					parsedTMI = new CommandParser(parsedTMI.subarray)
@@ -59,6 +63,9 @@ const
 	}
 export const
 	ReadOnlyConnection = function (initBuffer, config, emitter) {
+		Connection.call(this, initBuffer, config, emitter)
+	},
+	DedicatedReadOnlyConnection = function (initBuffer, config, emitter) {
 		Connection.call(this, initBuffer, config, emitter)
 	},
 	WriteOnlyConnection = function (initBuffer, config, emitter) {
@@ -96,22 +103,47 @@ Connection.prototype = {
 				return reject(new TimeoutError(`Timeout exceeded waiting for PONG`))
 			}, config.promiseTimeout)
 		})
-	}
+	},
+	writePermission: 0,
+	dedicated: 0
 }
 
 ReadOnlyConnection.prototype = {
 	__proto__: null,
 	...Connection.prototype,
 	channelLength: 0,
-	readPermission: true,
-	writePermission: false,
+	writePermission: 0,
+	pending: 0
+}
+
+DedicatedReadOnlyConnection.prototype = {
+	__proto__: null,
+	...ReadOnlyConnection.prototype,
+	dedicated: 1
 }
 
 WriteOnlyConnection.prototype = {
 	__proto__: null,
 	...Connection.prototype,
-	readPermission: false,
-	writePermission: true,
+	writePermission: 1,
+
+
+
+
+	/**
+	 * @callback writeRaw
+	 * @param  {string}  message
+	 * @return {boolean} Returns `true` if the entire data was flushed successfully to the kernel buffer.
+	 * Returns `false` if all or part of the data was queued in user memory.
+	 */
+
+	/**
+	 * Sends to a socket raw, terminates in a newline, and does no character validation.
+	 * @type {writeRaw}
+	 */
+	writeRaw: function (message) {
+		return this.socket.write(`${message}\n`)
+	},
 
 	/**
 	 * @callback privmsg
@@ -176,7 +208,7 @@ for (const command in privmsgCommands) {
 			 * @param {number|string} color
 			 * @param {string}        [channel]
 			 */
-			WriteOnlyConnection.prototype[command] = (config, emitter, color, channel) => {
+			WriteOnlyConnection.prototype[command] = function (config, emitter, color, channel) {
 				channel ??= config.nick
 				if (typeof color === `number`)
 					color = `#` + (`0`.repeat(6 - (color = color.toString(16)).length) + color)
@@ -367,6 +399,5 @@ ReadWriteConnection.prototype = {
 	__proto__: null,
 	...ReadOnlyConnection.prototype,
 	...WriteOnlyConnection.prototype,
-	readPermission: true,
-	writePermission: true
+	writePermission: 1
 }

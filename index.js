@@ -3,8 +3,13 @@ import { privmsgCommands } from './notices.js'
 import { TimeoutError } from './errors.js'
 import { RoomTracker } from './room.js'
 import { Config } from './config.js'
-import { ReadOnlyConnection, WriteOnlyConnection, ReadWriteConnection } from './connections.js'
+import { /*DedicatedReadOnlyConnection,*/ ReadOnlyConnection, WriteOnlyConnection, ReadWriteConnection } from './connections.js'
 import { hashtag, lf, comma } from './characters.js'
+
+const
+	// +100ms because js timers are inaccurate
+	AUTHENTICATION_LIMIT_MS = 10_100,
+	AUTHENTICATION_ATTEMPT_LIMIT = 20
 
 /**
  * @constructor
@@ -78,17 +83,22 @@ export const Client = (config = new Config) => {
 	const ReadConnection = config.mergeConnections && authenticated ? ReadWriteConnection : ReadOnlyConnection
 	emitter.connect = async () => {
 		if (!reconnecting) {
-			if (first && authenticated)
+			if (first && authenticated) {
 				emitter.once(`001`, _ => config.nick = _.login)
+				first = false
+			}
 			emitter.config = config
 		}
 
-		let ready
+		let
+			ready,
+			limits
+
 		emitter.connections = config.mergeConnections
 			? new function () {
 				Object.setPrototypeOf(this, null)
 
-				config.readDivisor = (config.readDivisor <= 0) * 1 || config.readDivisor
+				config.readDivisor = +(config.readDivisor <= 0) || config.readDivisor
 
 				this.read
 					= this.write
@@ -96,8 +106,35 @@ export const Client = (config = new Config) => {
 
 				ready = Array(this.read.length)
 
-				for (const i of this.read.keys())
-					ready[i] = (this.read[i] = new ReadConnection(initBuffer, config, emitter)).ready
+				if (authenticated && config.rateLimit) {
+					// https://dev.twitch.tv/docs/chat/#rate-limits
+					let
+						limit = 0,
+						limiter = 0,
+						readyStart = 0
+
+					limits = Array(Math.ceil(this.read.length / AUTHENTICATION_ATTEMPT_LIMIT))
+
+					const limitIterator = limits.keys()
+
+					for (const i of this.read.keys()) {
+						const readyIndex = readyIterator.next().value
+						ready[readyIndex] = new Promise(resolve => {
+							setTimeout(() => resolve((this.read[i] = new ReadConnection(initBuffer, config, emitter)).ready), limit * AUTHENTICATION_LIMIT_MS)
+						})
+						if (++limiter === AUTHENTICATION_ATTEMPT_LIMIT) {
+							limits[limitIterator.next().value] = Promise.all(ready.slice(readyStart, readyStart = readyIndex + 1))
+							limiter = 0
+							++limit
+						}
+					}
+
+					if (limiter !== 0)
+						limits[limitIterator.next().value] = Promise.all(ready.slice(readyStart, ready.length))
+				}
+				else
+					for (const i of this.read.keys())
+						ready[i] = (this.read[i] = new ReadConnection(initBuffer, config, emitter)).ready
 			}
 			: new function () {
 				Object.setPrototypeOf(this, null)
@@ -106,21 +143,57 @@ export const Client = (config = new Config) => {
 
 				// Unauthenticated users can't have write connections
 				config.writeMultiplier = (config.writeMultiplier >= 0) * config.writeMultiplier * authenticated
-				this.write = Array(Math.ceil(size || 1 * config.writeMultiplier))
+				this.write = Array(Math.ceil((size || 1) * config.writeMultiplier))
 
-				config.readDivisor = (config.readDivisor <= 0) * 1 || config.readDivisor
+				config.readDivisor = +(config.readDivisor <= 0) || config.readDivisor
 				this.read = Array(Math.ceil(size / config.readDivisor))
 
-				ready = Array(this.write.length + this.read.length)
-				const itr = ready.keys()
+				const connectionLength = this.write.length + this.read.length
+				ready = Array(connectionLength)
+				const readyIterator = ready.keys()
 
-				for (const i of this.read.keys())
-					ready[itr.next().value] = (this.read[i] = new ReadOnlyConnection(initBuffer, config, emitter)).ready
-				for (const i of this.write.keys())
-					ready[itr.next().value] = (this.write[i] = new WriteOnlyConnection(initBuffer, config, emitter)).ready
+				if (authenticated && config.rateLimit) {
+					// https://dev.twitch.tv/docs/chat/#rate-limits
+					let
+						limit = 0,
+						limiter = 0,
+						readyOffset = 0
+
+					limits = Array(Math.ceil(connectionLength / AUTHENTICATION_ATTEMPT_LIMIT))
+					const
+						limitIterator = limits.keys(),
+						limitConnections = (connectionType, ConnectionConstructor) => {
+							for (const i of this[connectionType].keys()) {
+								const readyIndex = readyIterator.next().value
+								ready[readyIndex] = new Promise(resolve => {
+									setTimeout(() => resolve((this[connectionType][i] = new ConnectionConstructor(initBuffer, config, emitter)).ready), limit * AUTHENTICATION_LIMIT_MS)
+								})
+								if (++limiter === AUTHENTICATION_ATTEMPT_LIMIT) {
+									limits[limitIterator.next().value] = Promise.all(ready.slice(readyOffset, readyOffset = readyIndex + 1))
+									limiter = 0
+									++limit
+								}
+							}
+						}
+
+					limitConnections(`read`, ReadOnlyConnection)
+					limitConnections(`write`, WriteOnlyConnection)
+
+					if (limiter !== 0)
+						limits[limitIterator.next().value] = Promise.all(ready.slice(readyOffset, ready.length))
+				}
+				else {
+					for (const i of this.read.keys())
+						ready[readyIterator.next().value] = (this.read[i] = new ReadOnlyConnection(initBuffer, config, emitter)).ready
+					for (const i of this.write.keys())
+						ready[readyIterator.next().value] = (this.write[i] = new WriteOnlyConnection(initBuffer, config, emitter)).ready
+				}
 			}
 
-		if (emitter.connections.read.length === 0 && emitter.connections.write.length >= 1)
+		const
+			writeOnly = emitter.connections.read.length === 0 && emitter.connections.write.length >= 1,
+			readOnly = emitter.connections.write.length === 0 && emitter.connections.read.length >= 1
+		if (writeOnly)
 			/**
 			 * Write-only mode specific method.
 			 *
@@ -154,8 +227,8 @@ export const Client = (config = new Config) => {
 				emitter.connections.length = size
 			}
 		else {
-			let attempts = 5
-			let roomMuatatorIndex = -1
+			let roomMutatorIndex = -1
+
 			/**
 			 * If a Set is provided, it'll be mutated, Strings and Arrays won't.
 			 * @return Returns undefined when all channels are within `this.joinedChannels`.
@@ -172,7 +245,9 @@ export const Client = (config = new Config) => {
 						channels = new Set().add(channels)
 						break
 					case RoomTracker:
-						channels = new Set(...channels.keys())
+						channels = new Set(channels.keys())
+						if (type === `join`)
+							emitter.rooms.clear()
 						break
 					default:
 						return reject(TypeError())
@@ -201,70 +276,93 @@ export const Client = (config = new Config) => {
 					}
 				}
 				else {
-					let readSize = Math.ceil((channels.size + emitter.rooms.readSize) / config.readDivisor)
 
-					while (readSize > emitter.connections.read.length)
-						emitter.connections.read[emitter.connections.read.length] = new ReadConnection(initBuffer, config, emitter)
+					for (const channel of emitter.rooms.keys())
+						channels.delete(channel)
 
-					if (!config.mergeConnections) {
-						let writeSize = Math.ceil((channels.size + emitter.rooms.writeSize) * config.writeMultiplier)
-						while (writeSize > emitter.connections.write.length)
-							emitter.connections.write[emitter.connections.write.length] = new WriteOnlyConnection(initBuffer, config, emitter)
+					const
+						roomSize = channels.size + emitter.rooms.size,
+						divisor = config.readDivisor
+
+					let readSize = Math.ceil(roomSize / divisor)
+
+					if (readSize > emitter.connections.read.length) {
+						let i = emitter.connections.read.length
+						emitter.connections.read.length = readSize
+
+						while (readSize > i)
+							emitter.connections.read[i++] = new ReadConnection(initBuffer, config, emitter)
 					}
 
-					let channelsPerConnection = Math.ceil(channels.size / config.readDivisor)
-					// clamps
-					channelsPerConnection = (channelsPerConnection > config.readDivisor) * config.readDivisor + (channelsPerConnection < config.readDivisor) * channelsPerConnection
+					if (!config.mergeConnections) {
+						let writeSize = Math.ceil(roomSize * config.writeMultiplier)
+
+						if (writeSize > emitter.connections.write.length) {
+							let i = emitter.connections.write.length
+							emitter.connections.write.length = writeSize
+
+							while (writeSize > i)
+								emitter.connections.write[i++] = new WriteOnlyConnection(initBuffer, config, emitter)
+						}
+					}
+
+					let size = channels.size
 					const
 						// The max length of a username can be's 25 bytes + (a leading `join #`.length === 6 bytes) + (a trailing `\n` === 1 byte) = 32 bytes
 						// When joining multiple channels, we can comma seperate each, so 25 bytes + (a leading `,#`.length === 2 bytes) = 27 bytes
-						buffer = Buffer.allocUnsafe((channels.size > 0) * 32 + (channelsPerConnection > 1) * (channelsPerConnection - 1) * 27),
-						itr = channels.values()
-					let size = channels.size
+						buffer = Buffer.allocUnsafe((size > 0) * 32 + (size > 1) * (divisor - 1) * 27),
+						channelIterator = channels.values()
 
 					joiner:
-					while (--size > -1) {
-						let connectionIndex, channelLength
+					while (size > 0) {
+						let connection, remainder, index
 
-						do channelLength = emitter.connections.read[connectionIndex = ++roomMuatatorIndex % emitter.connections.read.length | 0].channelLength + channelsPerConnection
-						while (channelLength > config.readDivisor)
+						do {
+							index = ++roomMutatorIndex % readSize
+							connection = emitter.connections.read[index]
+							await connection.ready
+							remainder = divisor - connection.channelLength
+						}
+						while (remainder < 1)
 
 						let offset = buffer.write(`${type} #`, encoding)
 
-						let i = 0
 						for (;;) {
-							const channel = itr.next().value
+							const channel = channelIterator.next().value
 
 							if (channel === undefined)
 								break joiner
 
+							--size
+							--remainder
+
+							/*
+							Checking for duplicate channels used to be done here, but it wasn't worth the allocation overhead.
 							const joined = emitter.rooms.has(channel)
 
 							if (joined) {
 								channels.delete(channel)
 								continue
 							}
+							*/
 
 							offset += buffer.write(channel, offset, encoding)
 
-							if (++i === channelsPerConnection)
+							if (size === 0 || remainder === 0)
 								break
 
 							offset = buffer.writeUint8(hashtag, buffer.writeUint8(comma, offset))
 						}
 
-						const connection = emitter.connections.read[connectionIndex]
-
-						await connection.ready
-						// For some reason using the raw buffer here results in encoding issues (421s sent back due to early newlines)
-						// bug with node.js writables maybe
-						connection.socket.write(buffer.toString(encoding, undefined, buffer.writeUint8(lf, offset)), encoding)
+						connection.socket.write(buffer.subarray(undefined, buffer.writeUint8(lf, offset)))
 					}
 				}
 
 
-				if (channels.size === 0)
+				if (channels.size === 0) {
+
 					return resolve()
+				}
 
 				const
 					event = type.toUpperCase(),
@@ -279,20 +377,27 @@ export const Client = (config = new Config) => {
 					}
 				emitter.on(event, listener)
 
+				/*
 				setTimeout(() => {
 					emitter.removeListener(event, listener)
 
 					// Renamed or never created channels won't return a NOTICE,
 					// so multiple attempts will be required in these specific cases
 					if (emitter.failSize === channels.size && --attempts !== 0) {
+						// if (!parting)
+						// for (const connection of pendingConnections)
+						// connection.pending = 0
+
 						attempts = 5
 						emitter.failSize = undefined
 						return reject(channels)
 					}
 
 					emitter.failSize = channels.size
-					parting ? emitter.part(channels) : emitter.join(channels)
-				}, 10_000)
+					// sequence = emitter[parting ? `part` : `join`](channels)
+					emitter[parting ? `part` : `join`](channels, 0)
+				}, 10_500)
+				*/
 			})
 
 			/**
@@ -313,7 +418,7 @@ export const Client = (config = new Config) => {
 			// These are currently intentionally not promisified for performance
 			// I'm not opposed to adding promisified versions with USERSTATE events
 			// But the base versions absolutely won't be
-			for (const key of [`privmsg`, `privmsgTS`, `reply`, `replyTS`])
+			for (const key of [`writeRaw`, `privmsg`, `privmsgTS`, `reply`, `replyTS`])
 				emitter[key] = function () {
 					return emitter.connections.write[++privmsgConnectionIndex % emitter.connections.write.length | 0][key](...arguments)
 				}
@@ -323,19 +428,49 @@ export const Client = (config = new Config) => {
 				}
 		}
 
-		emitter.ping = () => (emitter.connections.read[0] || emitter.connections.write[0]).ping()
+		let
+			pingReadIndex = -1,
+			pingWriteIndex = -1
+		emitter.ping = () => {
+			if (writeOnly || config.mergeConnections)
+				return emitter.connections.write[++pingWriteIndex % emitter.connections.write.length].ping()
+			else if (readOnly)
+				return emitter.connections.read[++pingReadIndex % emitter.connections.read.length].ping()
+
+			return (Math.random() > emitter.connections.read.length / (emitter.connections.read.length + emitter.connections.write.length)
+				? emitter.connections.write[++pingWriteIndex % emitter.connections.write.length]
+				: emitter.connections.read[++pingReadIndex % emitter.connections.read.length]
+			).ping()
+		}
+
+		emitter.closed = 0
+		emitter.close = () => {
+			for (const connection of emitter.connections.read)
+				connection.socket.destroySoon()
+			if (!config.mergeConnections)
+				for (const connection of emitter.connections.write)
+					connection.socket.destroySoon()
+		}
+
+		process
+			.once(`SIGINT`, emitter.close)
+			.once(`SIGTERM`, emitter.close)
 
 		emitter.once(`RECONNECT`, () => {
-			for (const i of emitter.connections.read.keys())
-				emitter.connections.read[i].destroy()
-			for (const i of emitter.connections.write.keys())
-				emitter.connections.write[i].destroy()
+			console.warn(`RECONNECT received`)
+			// Sometimes reconencts get sent multiple times in a row,
+			// this causes loads of problems when dealing with rate limits,
+			// to counteract this, we reconnect with the authentication limit's delay.
+			setTimeout(() => {
+				console.warn(`RECONNECTING...`)
+				emitter.close()
+				reconnecting = true
 
-			reconnecting = true
-			emitter.connect()
+				emitter.connect()
+			}, AUTHENTICATION_LIMIT_MS)
 		})
 
-		await Promise.all(ready)
+		await Promise.all(config.rateLimit ? limits : ready)
 	}
 	return emitter
 }

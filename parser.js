@@ -408,8 +408,12 @@ export const CommandParser = function (buffer) {
 					case space: {
 						// Hacky way to check for a WHISPER early
 						const whisper = this[`thread-id`] !== undefined
-						// Hacky way to check for a PRIVMSG early
-						if (this[`first-msg`] !== undefined || whisper) {
+						// Hacky way to check for a PRIVMSG/WHISPER early
+						if (
+							this[`system-msg`] === undefined // required for USERNOTICEs
+							&& this[`emote-sets`] === undefined // required for tagged USERSTATEs
+							&& this.badges !== undefined // required for PRIVMSGs and WHISPERs
+						) {
 							offset = i += 2
 							while (buffer[++i] !== bang);
 							this.login = buffer.parse(offset, i)
